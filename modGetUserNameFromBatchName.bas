@@ -11,7 +11,7 @@ Option Explicit
 ' Purpose          : compares the batchname username with the created by and
 '                    submitted by usernames.
 '------------------------------------------------------------------------------
-Function parseBatchNames(shtTarget As Worksheet)
+Function parseBatchNames(shtTarget As Worksheet) 'NO RETURN
 
     'declare variables
     Dim lngLastDataRowOfSheet As Long
@@ -47,11 +47,14 @@ Function parseBatchNames(shtTarget As Worksheet)
             
             createdByCompareResult = compareNames(usrname, Cells(cel.Row, BATCH_CREATED_BY))
             submittedByCompareResult = compareNames(usrname, Cells(cel.Row, BATCH_SUBMITTED_BY))
+            
             Cells(cel.Row, BATCH_NAME_VS_CREATED_BY).Value = createdByCompareResult
             Cells(cel.Row, BATCH_NAME_VS_SUBMITTED_BY).Value = submittedByCompareResult
             
+            
         Else
             Range(Cells(cel.Row, BATCH_NAME_VS_CREATED_BY), Cells(cel.Row, BATCH_NAME_VS_SUBMITTED_BY)).Value = "Approval not required."
+            'Debug.Print "Approval not required." & " Row " & cel.Row
             
         End If
         
@@ -89,19 +92,19 @@ Function extractUserNameFromBatchName(strBatchName As String) As String
             intSliceBegin = InStr(strBatchName, " 9.") + 3
             intSliceEnd = InStr(intSliceBegin + 1, strBatchName, ".")
             usrname = Mid(strBatchName, intSliceBegin, intSliceEnd - intSliceBegin) 'space before "9."
-            
+            Debug.Print "1"
             
         ElseIf (Left(strBatchName, 2) = "9." And InStr(InStr(strBatchName, "9.") + 2, strBatchName, ".") > 0) Then
             intSliceBegin = InStr(1, strBatchName, "9.") + 2
             intSliceEnd = InStr(intSliceBegin + 1, strBatchName, ".")
             usrname = Trim(Mid(strBatchName, intSliceBegin, intSliceEnd - intSliceBegin)) ' no space before "9."
-            
+            Debug.Print "2"
             
         ElseIf (Left(strBatchName, 2) = "9." And InStr(InStr(strBatchName, "9.") + 2, strBatchName, ".") = 0) Then
             intSliceBegin = InStr(1, strBatchName, "9.") + 2
             intSliceEnd = InStr(intSliceBegin + 1, strBatchName, " ")
             usrname = Trim(Mid(strBatchName, intSliceBegin, intSliceEnd - intSliceBegin)) '"9." detected but no "." found after.
-            
+            Debug.Print "3"
             
         ElseIf InStr(strBatchName, "Reverses ") Then
 
@@ -111,40 +114,43 @@ Function extractUserNameFromBatchName(strBatchName As String) As String
                     intSliceBegin = Len("Reverses ") + 2
                     intSliceEnd = InStr(intSliceBegin + 1, strBatchName, ".")
                     usrname = Mid(strBatchName, intSliceBegin, intSliceEnd - intSliceBegin)
-                    
+                    Debug.Print "4"
                 Else
                     intSliceBegin = Len("Reverses ") + 2
                     intSliceEnd = InStr(intSliceBegin + 1, strBatchName, " ")
                     usrname = Mid(strBatchName, intSliceBegin, intSliceEnd - intSliceBegin)
-                    
+                    Debug.Print "5"
                 End If
         ElseIf InStr(strBatchName, "REVERSE ") > 0 And InStr(strBatchName, "REVERSE ") < Len("REVERSE ") Then
             intSliceBegin = InStr(strBatchName, "REVERSE") + Len("REVERSE")
             intSliceEnd = InStr(intSliceBegin + 1, strBatchName, ".")
             usrname = Mid(strBatchName, intSliceBegin, intSliceEnd - intSliceBegin)
-            
+            Debug.Print "6"
         ElseIf InStr(strBatchName, "REVERSE.") > 0 And InStr(strBatchName, "REVERSE.") < Len("REVERSE.") Then
             intSliceBegin = InStr(strBatchName, "REVERSE.") + Len("REVERSE.")
             intSliceEnd = InStr(intSliceBegin + 1, strBatchName, ".")
             usrname = Mid(strBatchName, intSliceBegin, intSliceEnd - intSliceBegin)
-
+            Debug.Print "7"
         Else
             If InStr(strBatchName, ".") > 0 Then
                 usrname = Left(strBatchName, InStr(strBatchName, ".") - 1)
-                If UCase(usrname) = "APEX" Then
-                    usrname = ""
-                End If
+                Debug.Print "USERNAME=" & usrname
+                Debug.Print "8"
             End If
         End If
     Else
         usrname = Left(strBatchName, InStr(strBatchName, " "))
+        Debug.Print "9"
     End If
     
     usrname = UCase(clearNonAlphas(usrname))
-    
+    Debug.Print "USERNAME=" & usrname
     If exists(LIST_OF_NON_NAMES(), usrname) Then
         usrname = ""
+        Debug.Print "10"
     End If
+    
+    Debug.Print usrname & " : " & strBatchName
     
     extractUserNameFromBatchName = usrname
 End Function
@@ -172,24 +178,29 @@ Function compareNames(strKey As String, strUsername As String) As String
     
     
     If ((strKey = "" Or strKey = " ") Or (strUsername = "" Or strUsername = " ")) Then
+        'Debug.Print "1"
         compareNames = ""
         Exit Function
     End If
     
-    If userExists(strUsername) = True And getKey(strUsername) = strKey Then
-        dblScore = 1
+    If userExists(strUsername) = True And getKey(strUsername) = strKey Then ' ENTRY EXISTS IN TBL_USERS
+        'Debug.Print "2"
+        compareNames = MATCH_LIKELY
+        Exit Function
+        
     Else
         dblScore = arrayCompare(getHash(strKey), getHash(strUsername))
+        
         If dblScore = 1 Then
             Call addUser(strKey, strUsername)
+            result = MATCH_LIKELY
+            
+        Else
+            result = MATCH_UNLIKELY
+            
         End If
     End If
-    If dblScore = 1 Then
-        result = MATCH_LIKELY
-    Else
-        result = MATCH_UNLIKELY
     
-    End If
     compareNames = result
 End Function
 
