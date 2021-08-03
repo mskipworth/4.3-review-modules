@@ -13,10 +13,6 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-
-
-
-
 Option Explicit
 
 
@@ -24,23 +20,24 @@ Option Explicit
 Private Sub btnCompare_Click()
 
     Dim shtWorkingSheet As Worksheet
-    
     Dim tblUsers As Worksheet
     
     Set tblUsers = createSheetIfNotExists(TBL_USERS)
     
-    If cmbSheets.Value <> Null Then
-    
+    If cmbSheets.Value <> "" Then
         Set shtWorkingSheet = Sheets(cmbSheets.Value)
     Else
-        Set shtWorkingSheet = ActiveSheet
+        Debug.Print cmbSheets.Value
+        MsgBox "Please select a valid Worksheet and try again."
+        Exit Sub
     End If
     
     If shtWorkingSheet.Name <> TBL_USERS Then
         shtWorkingSheet.Activate
     
         Call parseBatchNames(shtWorkingSheet)
-        tblUsers.Range(tblUsers.Cells(1, KEY), tblUsers.Cells(tblUsers.UsedRange.Rows.Count, USERNAME)).Sort key1:=tblUsers.Range("A1"), Order1:=xlAscending, Header:=xlNo
+        tblUsers.Range(Sheets(TBL_USERS).Cells(1, KEY), Sheets(TBL_USERS).Cells(Sheets(TBL_USERS).UsedRange.Rows.Count, USERNAME)) _
+        .Sort key1:=Sheets(TBL_USERS).Range("A1"), Order1:=xlAscending, Header:=xlNo
     End If
     
     MsgBox "Done!"
@@ -64,4 +61,5 @@ End Sub
 Private Sub UserForm_Initialize()
     
     cmbSheets.List = listAllSheets
+    cmbSheets.Value = ActiveSheet.Name
 End Sub
